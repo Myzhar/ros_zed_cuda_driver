@@ -28,6 +28,50 @@ else()
 endif()
 ###############################################################################
 
+###############################################################################
+# INCLUDES
+
+set(zed_INC_PATH ${ros_zed_camera_SOURCE_DIR}/src/driver/include)
+set(zed_INC_DIRS ${zed_INC_PATH})
+
+# Specify locations of header files.
+include_directories(${zed_INC_DIRS})
+###############################################################################
+
+###############################################################################
+# STEREOLABS ZED SDK
+if(COMMAND cmake_policy)
+        cmake_policy(SET CMP0003 OLD)
+        cmake_policy(SET CMP0015 OLD)
+endif(COMMAND cmake_policy)
+
+
+SET(LINUX_ONLY_LIBRARIES "")
+
+SET(ZED_DIR "/usr/local/zed/")
+find_package(ZED 1.0 REQUIRED)
+#find_package(GLUT)
+SET(LINUX_ONLY_LIBRARIES pthread npps nppi)
+
+find_package(CUDA 6.5 EXACT REQUIRED)
+#find_package(OpenGL)
+
+include_directories(${ZED_INCLUDE_DIRS})
+#include_directories(${GLUT_INCLUDE_DIRS})
+include_directories(${CUDA_INCLUDE_DIRS})
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+link_directories(${ZED_LIBRARY_DIR})
+#link_directories(${GLUT_LIBRARY_DIRS})
+#link_directories(${OpenGL_LIBRARY_DIRS})
+link_directories(${CUDA_LIBRARY_DIRS})
+#link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
+###############################################################################
+
+
+
+###############################################################################
+# CATKIN
 find_package(catkin REQUIRED COMPONENTS
   image_transport
   roscpp
@@ -43,27 +87,20 @@ catkin_package(
     image_transport
 )
 
-###############################################################################
-# INCLUDES
 
-set(zed_INC_DIRS
-    src/
-    src/driver/include/
-    /usr/local/zed/include
-)
-
-# Specify locations of header files.
-include_directories(
-	${catkin_INCLUDE_DIRS} 
-	${zed_INC_DIRS}
-)
+include_directories(${catkin_INCLUDE_DIRS})
 ###############################################################################
+
 
 ###############################################################################
 # SOURCES
 set(zed_SRC
-    src/zed_camera_node.cpp
-    src/driver/src/zed_camera_driver.cpp
+    ${ros_zed_camera_SOURCE_DIR}/src/zed_camera_node.cpp
+    ${ros_zed_camera_SOURCE_DIR}/src/driver/src/zed_camera_driver.cpp
+)
+
+set(zed_HDR
+    ${zed_INC_PATH}/zed_camera_driver.h
 )
 ###############################################################################
 
@@ -72,13 +109,18 @@ set(zed_SRC
 add_executable(
   zed_camera_node
   ${zed_SRC}
+  ${zed_HDR}
 )
-
-find_library(zed_LIBRARY sl_calibration sl_depthcore sl_zed cudpp cudpp_hash /usr/local/zed/lib)
+add_definitions(-std=c++0x)# -m64)
 
 target_link_libraries(
-        zed_camera_node
-        ${catkin_LIBRARIES} ${zed_LIBRARY}
+        zed_camera_node        
+        ${ZED_LIBRARIES}
+        ${CUDA_LIBRARIES}
+        ${LINUX_ONLY_LIBRARIES}
+        #${OPENGL_LIBRARIES}
+        #${GLUT_LIBRARY}
+        ${catkin_LIBRARIES}
     )
 ###############################################################################
 

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <ros/ros.h>
-#include <zed_camera_driver.h>
+#include "zed_camera_driver.h"
 
 
 int main(int argc, char** argv)
@@ -11,9 +11,12 @@ int main(int argc, char** argv)
     ROS_INFO_STREAM("       StereoLabs ZED node         \r");
     ROS_INFO_STREAM("-----------------------------------\r");
 
-    //ZedDriver cameraDriver;
+    ZedDriver cameraDriver;
 
-    //cameraDriver.run();
+    if(cameraDriver.init() )
+        cameraDriver.start();
+    else
+        return(EXIT_FAILURE);
 
     ros::spin();
 
