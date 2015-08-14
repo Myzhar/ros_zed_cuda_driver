@@ -14,6 +14,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Imu.h>
+#include <stereo_msgs/DisparityImage.h>
 
 #include <pthread.h>
 
@@ -40,7 +41,7 @@ public:
     ~ZedDriver();
 
     bool init();
-    void release();
+    void releaseCamera();
 
 
     void  start();
