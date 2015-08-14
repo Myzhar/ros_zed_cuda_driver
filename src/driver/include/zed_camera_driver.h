@@ -76,8 +76,8 @@ private:
     // <<<<< Image transportation RGB
 
     // >>>>> Image transportation Depth/Confidence
-    image_transport::ImageTransport _depth_ImgTr;
-    image_transport::CameraPublisher _depth_pub;
+    //TODO image_transport::ImageTransport _depth_ImgTr;
+    //TODO image_transport::CameraPublisher _depth_pub;
     image_transport::ImageTransport _confidence_ImgTr;
     image_transport::CameraPublisher _confidence_pub;
     // <<<<< Image transportation Depth/Confidence

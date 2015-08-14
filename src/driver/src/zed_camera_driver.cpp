@@ -1,4 +1,7 @@
 #include "zed_camera_driver.h"
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/distortion_models.h>
 
 //ZED include
 #include <zed/Camera.hpp>
@@ -14,7 +17,7 @@ ZedDriver::ZedDriver()
     , _streaming(false)
     , _error(false)
     , _rgb_left_ImgTr(_nh)
-    , _depth_ImgTr(_nh)
+    //TODO , _depth_ImgTr(_nh)
     , _rgb_right_ImgTr(_nh)
     , _confidence_ImgTr(_nh)
     , _zed_camera(NULL)
@@ -37,12 +40,12 @@ ZedDriver::ZedDriver()
 
     if( _enable_depth_confidence )
     {
-        _depth_pub = _depth_ImgTr.advertiseCamera("depth_image", 1,false);
-        _confidence_pub = _confidence_ImgTr.advertiseCamera("confidence_image", 1, false);
+        //TODO _depth_pub = _depth_ImgTr.advertiseCamera("depth_image", 1,false);
+        _confidence_pub = _confidence_ImgTr.advertiseCamera("stereo/confidence", 1, false);
     }
 
     if( _enable_ptcloud && _enable_rgb && _enable_registered )
-        _vertex_reg_pub = _nh.advertise<sensor_msgs::PointCloud2>("vertex_rgb_data", 1, false);
+        _vertex_reg_pub = _nh.advertise<sensor_msgs::PointCloud2>("stereo/registered_cloud", 1, false);
 
 }
 
@@ -104,7 +107,7 @@ void* ZedDriver::run()
     zed::Mat depth, imLeft, imRight, disparity, confidence;
 
     // >>>>> Camera information
-    zed::StereoParameters params = _zed_camera->getParameters();
+    zed::StereoParameters* params = _zed_camera->getParameters();
 
     sensor_msgs::CameraInfo left_cam_info_msg;
     sensor_msgs::CameraInfo right_cam_info_msg;
@@ -113,48 +116,48 @@ void* ZedDriver::run()
     right_cam_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
     left_cam_info_msg.D.resize(5);
-    left_cam_info_msg.D[0] = params.LeftCam.disto[0];
-    left_cam_info_msg.D[1] = params.LeftCam.disto[1];
-    left_cam_info_msg.D[2] = params.LeftCam.disto[2];
-    left_cam_info_msg.D[3] = params.LeftCam.disto[3];
-    left_cam_info_msg.D[4] = params.LeftCam.disto[4];
+    left_cam_info_msg.D[0] = params->LeftCam.disto[0];
+    left_cam_info_msg.D[1] = params->LeftCam.disto[1];
+    left_cam_info_msg.D[2] = params->LeftCam.disto[2];
+    left_cam_info_msg.D[3] = params->LeftCam.disto[3];
+    left_cam_info_msg.D[4] = params->LeftCam.disto[4];
     left_cam_info_msg.K.fill( 0.0 );
-    left_cam_info_msg.K[0] = params.LeftCam.fx;
-    left_cam_info_msg.K[2] = params.LeftCam.cx;
-    left_cam_info_msg.K[4] = params.LeftCam.fy;
-    left_cam_info_msg.K[5] = params.LeftCam.cy;
+    left_cam_info_msg.K[0] = params->LeftCam.fx;
+    left_cam_info_msg.K[2] = params->LeftCam.cx;
+    left_cam_info_msg.K[4] = params->LeftCam.fy;
+    left_cam_info_msg.K[5] = params->LeftCam.cy;
     left_cam_info_msg.K[8] = 1.0;
 
     left_cam_info_msg.R.fill( 0.0 );
     left_cam_info_msg.P.fill( 0.0 );
-    left_cam_info_msg.P[0] = params.LeftCam.fx;
-    left_cam_info_msg.P[2] = params.LeftCam.cx;
-    left_cam_info_msg.P[5] = params.LeftCam.fy;
-    left_cam_info_msg.P[6] = params.LeftCam.cy;
+    left_cam_info_msg.P[0] = params->LeftCam.fx;
+    left_cam_info_msg.P[2] = params->LeftCam.cx;
+    left_cam_info_msg.P[5] = params->LeftCam.fy;
+    left_cam_info_msg.P[6] = params->LeftCam.cy;
     left_cam_info_msg.P[10] = 1.0;
 
     left_cam_info_msg.width = _zed_camera->getImageSize().width;
     left_cam_info_msg.height = _zed_camera->getImageSize().height;
 
     right_cam_info_msg.D.resize(5);
-    right_cam_info_msg.D[0] = params.LeftCam.disto[0];
-    right_cam_info_msg.D[1] = params.LeftCam.disto[1];
-    right_cam_info_msg.D[2] = params.LeftCam.disto[2];
-    right_cam_info_msg.D[3] = params.LeftCam.disto[3];
-    right_cam_info_msg.D[4] = params.LeftCam.disto[4];
+    right_cam_info_msg.D[0] = params->LeftCam.disto[0];
+    right_cam_info_msg.D[1] = params->LeftCam.disto[1];
+    right_cam_info_msg.D[2] = params->LeftCam.disto[2];
+    right_cam_info_msg.D[3] = params->LeftCam.disto[3];
+    right_cam_info_msg.D[4] = params->LeftCam.disto[4];
     right_cam_info_msg.K.fill( 0.0 );
-    right_cam_info_msg.K[0] = params.LeftCam.fx;
-    right_cam_info_msg.K[2] = params.LeftCam.cx;
-    right_cam_info_msg.K[4] = params.LeftCam.fy;
-    right_cam_info_msg.K[5] = params.LeftCam.cy;
+    right_cam_info_msg.K[0] = params->LeftCam.fx;
+    right_cam_info_msg.K[2] = params->LeftCam.cx;
+    right_cam_info_msg.K[4] = params->LeftCam.fy;
+    right_cam_info_msg.K[5] = params->LeftCam.cy;
     right_cam_info_msg.K[8] = 1.0;
 
     right_cam_info_msg.R.fill( 0.0 );
     right_cam_info_msg.P.fill( 0.0 );
-    right_cam_info_msg.P[0] = params.LeftCam.fx;
-    right_cam_info_msg.P[2] = params.LeftCam.cx;
-    right_cam_info_msg.P[5] = params.LeftCam.fy;
-    right_cam_info_msg.P[6] = params.LeftCam.cy;
+    right_cam_info_msg.P[0] = params->LeftCam.fx;
+    right_cam_info_msg.P[2] = params->LeftCam.cx;
+    right_cam_info_msg.P[5] = params->LeftCam.fy;
+    right_cam_info_msg.P[6] = params->LeftCam.cy;
     right_cam_info_msg.P[10] = 1.0;
 
     right_cam_info_msg.width = _zed_camera->getImageSize().width;
@@ -230,7 +233,7 @@ void* ZedDriver::run()
 
             leftImgMsg.step = tmpMat.width * sizeof(uint8_t) * 3;
 
-            int imgSize = _lastRgbMsg.height * _lastRgbMsg.step;
+            int imgSize = leftImgMsg.height * leftImgMsg.step;
             leftImgMsg.data.resize( imgSize );
 
             memcpy( (uint8_t*)(&leftImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
@@ -254,7 +257,7 @@ void* ZedDriver::run()
 
             rightImgMsg.step = tmpMat.width * sizeof(uint8_t) * 3;
 
-            int imgSize = _lastRgbMsg.height * _lastRgbMsg.step;
+            imgSize = rightImgMsg.height * rightImgMsg.step;
             rightImgMsg.data.resize( imgSize );
 
             memcpy( (uint8_t*)(&rightImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
