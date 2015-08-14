@@ -52,6 +52,8 @@ public:
 private:
     void loadParams();
 
+    void initCamInfo(zed::StereoParameters *params);
+
     // >>>>> Ctrl+C handler
     /*! Ctrl+C handler
      */
@@ -68,6 +70,9 @@ private:
     ros::Publisher _vertex_pub;
     ros::Publisher _vertex_reg_pub;
 
+    sensor_msgs::CameraInfo _left_cam_info_msg;
+    sensor_msgs::CameraInfo _right_cam_info_msg;
+
     // >>>>> Image transportation RGB
     image_transport::ImageTransport _rgb_left_ImgTr;
     image_transport::CameraPublisher _rgb_left_pub;
@@ -76,8 +81,7 @@ private:
     // <<<<< Image transportation RGB
 
     // >>>>> Image transportation Depth/Confidence
-    //TODO image_transport::ImageTransport _depth_ImgTr;
-    //TODO image_transport::CameraPublisher _depth_pub;
+    ros::Publisher _disparity_pub;
     image_transport::ImageTransport _confidence_ImgTr;
     image_transport::CameraPublisher _confidence_pub;
     // <<<<< Image transportation Depth/Confidence

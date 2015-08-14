@@ -2,6 +2,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/distortion_models.h>
+#include <stereo_msgs/DisparityImage.h>
 
 //ZED include
 #include <zed/Camera.hpp>
@@ -41,6 +42,8 @@ ZedDriver::ZedDriver()
     if( _enable_depth_confidence )
     {
         //TODO _depth_pub = _depth_ImgTr.advertiseCamera("depth_image", 1,false);
+        _disparity_pub = _nh.advertise<stereo_msgs::DisparityImage>("stereo/disparity", 1 );
+
         _confidence_pub = _confidence_ImgTr.advertiseCamera("stereo/confidence", 1, false);
     }
 
@@ -90,6 +93,60 @@ void ZedDriver::releaseCamera()
     _zed_camera = NULL;
 }
 
+void ZedDriver::initCamInfo( zed::StereoParameters* params )
+{
+    _left_cam_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+    _right_cam_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+
+    _left_cam_info_msg.D.resize(5);
+    _left_cam_info_msg.D[0] = params->LeftCam.disto[0];
+    _left_cam_info_msg.D[1] = params->LeftCam.disto[1];
+    _left_cam_info_msg.D[2] = params->LeftCam.disto[2];
+    _left_cam_info_msg.D[3] = params->LeftCam.disto[3];
+    _left_cam_info_msg.D[4] = params->LeftCam.disto[4];
+    _left_cam_info_msg.K.fill( 0.0 );
+    _left_cam_info_msg.K[0] = params->LeftCam.fx;
+    _left_cam_info_msg.K[2] = params->LeftCam.cx;
+    _left_cam_info_msg.K[4] = params->LeftCam.fy;
+    _left_cam_info_msg.K[5] = params->LeftCam.cy;
+    _left_cam_info_msg.K[8] = 1.0;
+
+    _left_cam_info_msg.R.fill( 0.0 );
+    _left_cam_info_msg.P.fill( 0.0 );
+    _left_cam_info_msg.P[0] = params->LeftCam.fx;
+    _left_cam_info_msg.P[2] = params->LeftCam.cx;
+    _left_cam_info_msg.P[5] = params->LeftCam.fy;
+    _left_cam_info_msg.P[6] = params->LeftCam.cy;
+    _left_cam_info_msg.P[10] = 1.0;
+
+    _left_cam_info_msg.width = _zed_camera->getImageSize().width;
+    _left_cam_info_msg.height = _zed_camera->getImageSize().height;
+
+    _right_cam_info_msg.D.resize(5);
+    _right_cam_info_msg.D[0] = params->LeftCam.disto[0];
+    _right_cam_info_msg.D[1] = params->LeftCam.disto[1];
+    _right_cam_info_msg.D[2] = params->LeftCam.disto[2];
+    _right_cam_info_msg.D[3] = params->LeftCam.disto[3];
+    _right_cam_info_msg.D[4] = params->LeftCam.disto[4];
+    _right_cam_info_msg.K.fill( 0.0 );
+    _right_cam_info_msg.K[0] = params->LeftCam.fx;
+    _right_cam_info_msg.K[2] = params->LeftCam.cx;
+    _right_cam_info_msg.K[4] = params->LeftCam.fy;
+    _right_cam_info_msg.K[5] = params->LeftCam.cy;
+    _right_cam_info_msg.K[8] = 1.0;
+
+    _right_cam_info_msg.R.fill( 0.0 );
+    _right_cam_info_msg.P.fill( 0.0 );
+    _right_cam_info_msg.P[0] = params->LeftCam.fx;
+    _right_cam_info_msg.P[2] = params->LeftCam.cx;
+    _right_cam_info_msg.P[5] = params->LeftCam.fy;
+    _right_cam_info_msg.P[6] = params->LeftCam.cy;
+    _right_cam_info_msg.P[10] = 1.0;
+
+    _right_cam_info_msg.width = _zed_camera->getImageSize().width;
+    _right_cam_info_msg.height = _zed_camera->getImageSize().height;
+}
+
 void* ZedDriver::run()
 {
     if( !_zed_camera )
@@ -104,70 +161,19 @@ void* ZedDriver::run()
     zed::SENSING_MODE dm_type = zed::RAW;
 
     zed::Mat tmpMat;
-    zed::Mat depth, imLeft, imRight, disparity, confidence;
+    //zed::Mat depth, imLeft, imRight, disparity, confidence;
 
     // >>>>> Camera information
     zed::StereoParameters* params = _zed_camera->getParameters();
-
-    sensor_msgs::CameraInfo left_cam_info_msg;
-    sensor_msgs::CameraInfo right_cam_info_msg;
-
-    left_cam_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-    right_cam_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-
-    left_cam_info_msg.D.resize(5);
-    left_cam_info_msg.D[0] = params->LeftCam.disto[0];
-    left_cam_info_msg.D[1] = params->LeftCam.disto[1];
-    left_cam_info_msg.D[2] = params->LeftCam.disto[2];
-    left_cam_info_msg.D[3] = params->LeftCam.disto[3];
-    left_cam_info_msg.D[4] = params->LeftCam.disto[4];
-    left_cam_info_msg.K.fill( 0.0 );
-    left_cam_info_msg.K[0] = params->LeftCam.fx;
-    left_cam_info_msg.K[2] = params->LeftCam.cx;
-    left_cam_info_msg.K[4] = params->LeftCam.fy;
-    left_cam_info_msg.K[5] = params->LeftCam.cy;
-    left_cam_info_msg.K[8] = 1.0;
-
-    left_cam_info_msg.R.fill( 0.0 );
-    left_cam_info_msg.P.fill( 0.0 );
-    left_cam_info_msg.P[0] = params->LeftCam.fx;
-    left_cam_info_msg.P[2] = params->LeftCam.cx;
-    left_cam_info_msg.P[5] = params->LeftCam.fy;
-    left_cam_info_msg.P[6] = params->LeftCam.cy;
-    left_cam_info_msg.P[10] = 1.0;
-
-    left_cam_info_msg.width = _zed_camera->getImageSize().width;
-    left_cam_info_msg.height = _zed_camera->getImageSize().height;
-
-    right_cam_info_msg.D.resize(5);
-    right_cam_info_msg.D[0] = params->LeftCam.disto[0];
-    right_cam_info_msg.D[1] = params->LeftCam.disto[1];
-    right_cam_info_msg.D[2] = params->LeftCam.disto[2];
-    right_cam_info_msg.D[3] = params->LeftCam.disto[3];
-    right_cam_info_msg.D[4] = params->LeftCam.disto[4];
-    right_cam_info_msg.K.fill( 0.0 );
-    right_cam_info_msg.K[0] = params->LeftCam.fx;
-    right_cam_info_msg.K[2] = params->LeftCam.cx;
-    right_cam_info_msg.K[4] = params->LeftCam.fy;
-    right_cam_info_msg.K[5] = params->LeftCam.cy;
-    right_cam_info_msg.K[8] = 1.0;
-
-    right_cam_info_msg.R.fill( 0.0 );
-    right_cam_info_msg.P.fill( 0.0 );
-    right_cam_info_msg.P[0] = params->LeftCam.fx;
-    right_cam_info_msg.P[2] = params->LeftCam.cx;
-    right_cam_info_msg.P[5] = params->LeftCam.fy;
-    right_cam_info_msg.P[6] = params->LeftCam.cy;
-    right_cam_info_msg.P[10] = 1.0;
-
-    right_cam_info_msg.width = _zed_camera->getImageSize().width;
-    right_cam_info_msg.height = _zed_camera->getImageSize().height;
+    initCamInfo(params);
     // <<<<< Camera information
 
     std_msgs::Header leftMsgHeader;
     std_msgs::Header rightMsgHeader;
     sensor_msgs::Image leftImgMsg;
     sensor_msgs::Image rightImgMsg;
+
+    stereo_msgs::DisparityImage dispMsg;
 
     while( 1 )
     {
@@ -197,19 +203,39 @@ void* ZedDriver::run()
             // TODO verify the buffer overwriting as reported on DOCS
             // file:///usr/local/zed/doc/API/classsl_1_1zed_1_1Camera.html#a7ae4783e231502e7681890636e24e49c
             tmpMat = _zed_camera->retrieveMeasure(zed::MEASURE::DEPTH);
-            if( depth.height != tmpMat.height || depth.width!=tmpMat.width )
-                depth.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
-            memcpy( depth.data, tmpMat.data, tmpMat.getDataSize() );
+            //            if( depth.height != tmpMat.height || depth.width!=tmpMat.width )
+            //                depth.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
+            //            memcpy( depth.data, tmpMat.data, tmpMat.getDataSize() );
 
             tmpMat = _zed_camera->retrieveMeasure(zed::MEASURE::DISPARITY);
-            if( disparity.height != tmpMat.height || disparity.width!=tmpMat.width )
-                disparity.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
-            memcpy( disparity.data, tmpMat.data, tmpMat.getDataSize() );
+            //            if( disparity.height != tmpMat.height || disparity.width!=tmpMat.width )
+            //                disparity.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
+            //            memcpy( disparity.data, tmpMat.data, tmpMat.getDataSize() );
+
+            dispMsg.header.stamp = now;
+            dispMsg.header.seq = frameCnt;
+            dispMsg.header.frame_id = "disp";
+
+            dispMsg.image.header = dispMsg.header;
+
+            dispMsg.image.width = tmpMat.width;
+            dispMsg.image.height = tmpMat.height;
+            dispMsg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+
+            dispMsg.step = tmpMat.width * sizeof(float) * tmpMat.channels;
+
+            int imgSize = dispMsg.image.height * dispMsg.image.step;
+            dispMsg.image.data.resize( imgSize );
+
+            memcpy( (float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize );
+
+            if(_disparity_pub.getNumSubscribers()>0)
+                _disparity_pub.publish( dispMsg );
 
             tmpMat = _zed_camera->retrieveMeasure(zed::MEASURE::CONFIDENCE);
-            if( confidence.height != tmpMat.height || confidence.width!=tmpMat.width )
-                confidence.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
-            memcpy( confidence.data, tmpMat.data, tmpMat.getDataSize() );
+            //            if( confidence.height != tmpMat.height || confidence.width!=tmpMat.width )
+            //                confidence.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
+            //            memcpy( confidence.data, tmpMat.data, tmpMat.getDataSize() );
         }
 
         if( _enable_rgb )
@@ -219,9 +245,9 @@ void* ZedDriver::run()
 
             // >>>>> Left Image
             tmpMat = _zed_camera->retrieveImage(zed::SIDE::LEFT);
-//            if( imLeft.height != tmpMat.height || imLeft.width!=tmpMat.width )
-//                imLeft.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
-//            memcpy( imLeft.data, tmpMat.data, tmpMat.getDataSize() );
+            //            if( imLeft.height != tmpMat.height || imLeft.width!=tmpMat.width )
+            //                imLeft.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
+            //            memcpy( imLeft.data, tmpMat.data, tmpMat.getDataSize() );
 
             leftMsgHeader.stamp = now;
             leftMsgHeader.seq = frameCnt;
@@ -231,21 +257,21 @@ void* ZedDriver::run()
             leftImgMsg.height = tmpMat.height;
             leftImgMsg.encoding = sensor_msgs::image_encodings::BGR8;
 
-            leftImgMsg.step = tmpMat.width * sizeof(uint8_t) * 3;
+            leftImgMsg.step = tmpMat.width * sizeof(uint8_t) * tmpMat.channels;
 
             int imgSize = leftImgMsg.height * leftImgMsg.step;
             leftImgMsg.data.resize( imgSize );
 
             memcpy( (uint8_t*)(&leftImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
 
-            left_cam_info_msg.header = leftMsgHeader;
+            _left_cam_info_msg.header = leftMsgHeader;
             // <<<<< Left Image
 
             // >>>>> Right Image
             tmpMat = _zed_camera->retrieveImage(zed::SIDE::RIGHT);
-//            if( imRight.height != tmpMat.height || imRight.width!=tmpMat.width )
-//                imRight.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
-//            memcpy( imRight.data, tmpMat.data, tmpMat.getDataSize() );
+            //            if( imRight.height != tmpMat.height || imRight.width!=tmpMat.width )
+            //                imRight.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
+            //            memcpy( imRight.data, tmpMat.data, tmpMat.getDataSize() );
 
             rightMsgHeader.stamp = now;
             rightMsgHeader.seq = frameCnt;
@@ -262,28 +288,26 @@ void* ZedDriver::run()
 
             memcpy( (uint8_t*)(&rightImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
 
-            right_cam_info_msg.header = rightMsgHeader;
+            _right_cam_info_msg.header = rightMsgHeader;
             // <<<<< Right Image
 
             if( _rgb_left_pub.getNumSubscribers()>0 )
-            {
-                _rgb_left_pub.publish( leftImgMsg, left_cam_info_msg );
-            }
+                _rgb_left_pub.publish( leftImgMsg, _left_cam_info_msg );
+
 
             if( _rgb_right_pub.getNumSubscribers()>0 )
-            {
-                _rgb_right_pub.publish( rightImgMsg, right_cam_info_msg );
-            }
+                _rgb_right_pub.publish( rightImgMsg, _right_cam_info_msg );
+
         }
 
         // TODO Create the pointcloud
     }
 
-    depth.deallocate();
-    imLeft.deallocate();
-    imRight.deallocate();
-    disparity.deallocate();
-    confidence.deallocate();
+    //depth.deallocate();
+    //imLeft.deallocate();
+    //imRight.deallocate();
+    //disparity.deallocate();
+    //confidence.deallocate();
 
     ROS_INFO_STREAM( "ZED camera stopped... ");
 
