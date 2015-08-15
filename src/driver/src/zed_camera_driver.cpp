@@ -35,8 +35,9 @@ ZedDriver::ZedDriver()
 
     if( _enable_rgb )
     {
-        _rgb_left_pub = _rgb_left_ImgTr.advertiseCamera("stereo/left", 1, false);
-        _rgb_right_pub = _rgb_right_ImgTr.advertiseCamera("stereo/right", 1, false);
+        _rgb_left_ImgTr.
+        _rgb_left_pub = _rgb_left_ImgTr.advertiseCamera("stereo/left/image_rect", 1, false);
+        _rgb_right_pub = _rgb_right_ImgTr.advertiseCamera("stereo/right/image_rect", 1, false);
     }
 
     if( _enable_depth_confidence )
@@ -112,6 +113,7 @@ void ZedDriver::initCamInfo( zed::StereoParameters* params )
     _left_cam_info_msg.K[8] = 1.0;
 
     _left_cam_info_msg.R.fill( 0.0 );
+
     _left_cam_info_msg.P.fill( 0.0 );
     _left_cam_info_msg.P[0] = params->LeftCam.fx;
     _left_cam_info_msg.P[2] = params->LeftCam.cx;
@@ -123,24 +125,26 @@ void ZedDriver::initCamInfo( zed::StereoParameters* params )
     _left_cam_info_msg.height = _zed_camera->getImageSize().height;
 
     _right_cam_info_msg.D.resize(5);
-    _right_cam_info_msg.D[0] = params->LeftCam.disto[0];
-    _right_cam_info_msg.D[1] = params->LeftCam.disto[1];
-    _right_cam_info_msg.D[2] = params->LeftCam.disto[2];
-    _right_cam_info_msg.D[3] = params->LeftCam.disto[3];
-    _right_cam_info_msg.D[4] = params->LeftCam.disto[4];
+    _right_cam_info_msg.D[0] = params->RightCam.disto[0];
+    _right_cam_info_msg.D[1] = params->RightCam.disto[1];
+    _right_cam_info_msg.D[2] = params->RightCam.disto[2];
+    _right_cam_info_msg.D[3] = params->RightCam.disto[3];
+    _right_cam_info_msg.D[4] = params->RightCam.disto[4];
     _right_cam_info_msg.K.fill( 0.0 );
-    _right_cam_info_msg.K[0] = params->LeftCam.fx;
-    _right_cam_info_msg.K[2] = params->LeftCam.cx;
-    _right_cam_info_msg.K[4] = params->LeftCam.fy;
-    _right_cam_info_msg.K[5] = params->LeftCam.cy;
+    _right_cam_info_msg.K[0] = params->RightCam.fx;
+    _right_cam_info_msg.K[2] = params->RightCam.cx;
+    _right_cam_info_msg.K[4] = params->RightCam.fy;
+    _right_cam_info_msg.K[5] = params->RightCam.cy;
     _right_cam_info_msg.K[8] = 1.0;
 
-    _right_cam_info_msg.R.fill( 0.0 );
+    _right_cam_info_msg.R.fill( 0.0 ); // TODO use "params->convergence" data???
+
     _right_cam_info_msg.P.fill( 0.0 );
-    _right_cam_info_msg.P[0] = params->LeftCam.fx;
-    _right_cam_info_msg.P[2] = params->LeftCam.cx;
-    _right_cam_info_msg.P[5] = params->LeftCam.fy;
-    _right_cam_info_msg.P[6] = params->LeftCam.cy;
+    _right_cam_info_msg.P[0] = params->RightCam.fx;
+    _right_cam_info_msg.P[2] = params->RightCam.cx;
+    _right_cam_info_msg.P[3] = -params->RightCam.fx * params->baseline; // Tx = -Fx * Baseline
+    _right_cam_info_msg.P[5] = params->RightCam.fy;
+    _right_cam_info_msg.P[6] = params->RightCam.cy;
     _right_cam_info_msg.P[10] = 1.0;
 
     _right_cam_info_msg.width = _zed_camera->getImageSize().width;
