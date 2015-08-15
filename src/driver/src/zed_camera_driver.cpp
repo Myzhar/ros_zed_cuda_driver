@@ -216,13 +216,32 @@ void* ZedDriver::run()
             dispMsg.header.seq = frameCnt;
             dispMsg.header.frame_id = "disp";
 
+            dispMsg.f = params->LeftCam.fx;
+            dispMsg.valid_window.x_offset = 0;
+            dispMsg.valid_window.y_offset = 0;
+            dispMsg.valid_window.width = tmpMat.width;
+            dispMsg.valid_window.height = tmpMat.height;
+            dispMsg.min_disparity = 0.0f;
+            dispMsg.max_disparity = 256.0f;
+            
             dispMsg.image.header = dispMsg.header;
-
             dispMsg.image.width = tmpMat.width;
             dispMsg.image.height = tmpMat.height;
-            dispMsg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
 
-            dispMsg.step = tmpMat.width * sizeof(float) * tmpMat.channels;
+            int pixSize;
+            if(tmpMat.data_type == zed::DATA_TYPE::FLOAT)
+            {
+                dispMsg.image.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+                pixSize = sizeof(float);
+            }
+            else if(tmpMat.data_type == zed::DATA_TYPE::UCHAR)
+            {
+                dispMsg.image.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+                pixSize = sizeof(uint8_t);
+            }
+
+
+            dispMsg.image.step = tmpMat.width * pixSize * tmpMat.channels;
 
             int imgSize = dispMsg.image.height * dispMsg.image.step;
             dispMsg.image.data.resize( imgSize );
@@ -255,7 +274,10 @@ void* ZedDriver::run()
 
             leftImgMsg.width = tmpMat.width;
             leftImgMsg.height = tmpMat.height;
-            leftImgMsg.encoding = sensor_msgs::image_encodings::BGR8;
+            if(tmpMat.channels==3)
+                leftImgMsg.encoding = sensor_msgs::image_encodings::BGR8;
+            else if(tmpMat.channels==4)
+                leftImgMsg.encoding = sensor_msgs::image_encodings::BGRA8;
 
             leftImgMsg.step = tmpMat.width * sizeof(uint8_t) * tmpMat.channels;
 
@@ -279,9 +301,12 @@ void* ZedDriver::run()
 
             rightImgMsg.width = tmpMat.width;
             rightImgMsg.height = tmpMat.height;
-            rightImgMsg.encoding = sensor_msgs::image_encodings::BGR8;
+            if(tmpMat.channels==3)
+                rightImgMsg.encoding = sensor_msgs::image_encodings::BGR8;
+            else if(tmpMat.channels==4)
+                rightImgMsg.encoding = sensor_msgs::image_encodings::BGRA8;
 
-            rightImgMsg.step = tmpMat.width * sizeof(uint8_t) * 3;
+            rightImgMsg.step = tmpMat.width * sizeof(uint8_t) * tmpMat.channels;
 
             imgSize = rightImgMsg.height * rightImgMsg.step;
             rightImgMsg.data.resize( imgSize );
