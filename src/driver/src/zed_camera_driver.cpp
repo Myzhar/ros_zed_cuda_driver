@@ -4,9 +4,6 @@
 #include <sensor_msgs/distortion_models.h>
 #include <stereo_msgs/DisparityImage.h>
 
-//ZED include
-#include <zed/Camera.hpp>
-
 #include <string>
 
 bool ZedDriver::_stopping = false;
@@ -35,7 +32,6 @@ ZedDriver::ZedDriver()
 
     if( _enable_rgb )
     {
-        _rgb_left_ImgTr.
         _rgb_left_pub = _rgb_left_ImgTr.advertiseCamera("stereo/left/image_rect", 1, false);
         _rgb_right_pub = _rgb_right_ImgTr.advertiseCamera("stereo/right/image_rect", 1, false);
     }
@@ -63,7 +59,7 @@ bool ZedDriver::init()
     releaseCamera();
 
     // TODO set FPS from params!
-    _zed_camera = new zed::Camera( _resol, 0.0f );
+    _zed_camera = new zed::Camera( _resol, 15.0f );
 
     zed::MODE mode = _enable_depth_confidence==true?zed::PERFORMANCE:zed::NONE;
 
@@ -201,17 +197,16 @@ void* ZedDriver::run()
         ros::Time now = ros::Time::now();
         frameCnt++;
 
-
         if( _enable_depth_confidence )
         {
             // TODO verify the buffer overwriting as reported on DOCS
             // file:///usr/local/zed/doc/API/classsl_1_1zed_1_1Camera.html#a7ae4783e231502e7681890636e24e49c
-            tmpMat = _zed_camera->retrieveMeasure(zed::MEASURE::DEPTH);
+            //tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DEPTH);
             //            if( depth.height != tmpMat.height || depth.width!=tmpMat.width )
             //                depth.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( depth.data, tmpMat.data, tmpMat.getDataSize() );
 
-            tmpMat = _zed_camera->retrieveMeasure(zed::MEASURE::DISPARITY);
+            tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DISPARITY);
             //            if( disparity.height != tmpMat.height || disparity.width!=tmpMat.width )
             //                disparity.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( disparity.data, tmpMat.data, tmpMat.getDataSize() );
@@ -225,9 +220,9 @@ void* ZedDriver::run()
             dispMsg.valid_window.y_offset = 0;
             dispMsg.valid_window.width = tmpMat.width;
             dispMsg.valid_window.height = tmpMat.height;
-            dispMsg.min_disparity = 0.0f;
-            dispMsg.max_disparity = 256.0f;
-            
+            dispMsg.min_disparity = -100.0f;
+            dispMsg.max_disparity = 50000.0f;
+
             dispMsg.image.header = dispMsg.header;
             dispMsg.image.width = tmpMat.width;
             dispMsg.image.height = tmpMat.height;
@@ -244,18 +239,21 @@ void* ZedDriver::run()
                 pixSize = sizeof(uint8_t);
             }
 
-
             dispMsg.image.step = tmpMat.width * pixSize * tmpMat.channels;
 
             int imgSize = dispMsg.image.height * dispMsg.image.step;
             dispMsg.image.data.resize( imgSize );
 
-            memcpy( (float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize );
+            cudaMemcpy((float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost);
 
             if(_disparity_pub.getNumSubscribers()>0)
                 _disparity_pub.publish( dispMsg );
 
-            tmpMat = _zed_camera->retrieveMeasure(zed::MEASURE::CONFIDENCE);
+
+
+            ROS_INFO_STREAM( min << " | " << max ); //*/
+
+            //tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::CONFIDENCE);
             //            if( confidence.height != tmpMat.height || confidence.width!=tmpMat.width )
             //                confidence.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( confidence.data, tmpMat.data, tmpMat.getDataSize() );
@@ -267,6 +265,7 @@ void* ZedDriver::run()
             // file:///usr/local/zed/doc/API/classsl_1_1zed_1_1Camera.html#a7ae4783e231502e7681890636e24e49c
 
             // >>>>> Left Image
+            //tmpMat = _zed_camera->retrieveImage_gpu(zed::SIDE::LEFT);
             tmpMat = _zed_camera->retrieveImage(zed::SIDE::LEFT);
             //            if( imLeft.height != tmpMat.height || imLeft.width!=tmpMat.width )
             //                imLeft.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
@@ -288,12 +287,14 @@ void* ZedDriver::run()
             int imgSize = leftImgMsg.height * leftImgMsg.step;
             leftImgMsg.data.resize( imgSize );
 
+            //cudaMemcpy( (uint8_t*)(&leftImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost );
             memcpy( (uint8_t*)(&leftImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
 
             _left_cam_info_msg.header = leftMsgHeader;
             // <<<<< Left Image
 
             // >>>>> Right Image
+            //tmpMat = _zed_camera->retrieveImage_gpu(zed::SIDE::RIGHT);
             tmpMat = _zed_camera->retrieveImage(zed::SIDE::RIGHT);
             //            if( imRight.height != tmpMat.height || imRight.width!=tmpMat.width )
             //                imRight.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
@@ -315,6 +316,7 @@ void* ZedDriver::run()
             imgSize = rightImgMsg.height * rightImgMsg.step;
             rightImgMsg.data.resize( imgSize );
 
+            //cudaMemcpy( (uint8_t*)(&rightImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost );
             memcpy( (uint8_t*)(&rightImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
 
             _right_cam_info_msg.header = rightMsgHeader;

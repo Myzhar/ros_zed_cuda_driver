@@ -3,6 +3,8 @@
 
 //ZED include
 #include <zed/Camera.hpp>
+#include "cuda.h"
+#include "cuda_runtime.h"
 
 
 #include <ros/ros.h>
