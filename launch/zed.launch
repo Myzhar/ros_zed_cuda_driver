@@ -1,6 +1,6 @@
 <launch>
   <arg name="camera" default="zed" />
-  <node pkg="ros_zed_cuda_driver" type="depthsense_camera_node" name="depthsense_camera_node" ns="$(arg camera)" output="screen">
+  <node pkg="ros_zed_cuda_driver" type="zed_camera_node" name="zed_camera" ns="$(arg camera)" output="screen">
 	
 	<!-- Possible values: VGA HD2K HD1080 HD720 -->
 	<param name="resolution" value="VGA"/> 

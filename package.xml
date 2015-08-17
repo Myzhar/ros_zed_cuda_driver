@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>ros_zed_camera</name>
+  <name>ros_zed_cuda_driver</name>
   <version>0.1.0</version>
   <description>ROS Package to connect to StereoLabs ZED cameras</description>
 

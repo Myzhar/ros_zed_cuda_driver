@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "zed_camera_node");
+    ros::init(argc, argv, "zed_camera");
 
     ROS_INFO_STREAM("-----------------------------------\r");
     ROS_INFO_STREAM("       StereoLabs ZED node         \r");

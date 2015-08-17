@@ -418,22 +418,27 @@ void* ZedDriver::run()
     return 0;
 }
 
-#define PAR_RESOL                   "zed_camera/resolution"
-#define PAR_PUB_TF                  "zed_camera/publish_tf"
-#define PAR_ENABLE_RGB              "zed_camera/enable_rgb"
-#define PAR_ENABLE_PTCLOUD          "zed_camera/enable_ptcloud"
-#define PAR_ENABLE_REGISTERED       "zed_camera/enable_ptcloud_reg"
-#define PAR_ENABLE_NORM_DEPTH       "zed_camera/enable_norm_depth"
-#define PAR_ENABLE_NORM_DISP       "zed_camera/enable_norm_disparity"
-#define PAR_ENABLE_NORM_CONF       "zed_camera/enable_norm_confidence"
-#define PAR_CONF_THRESH             "zed_camera/confidence_thresh"
+#define PAR_RESOL                   "resolution"
+#define PAR_PUB_TF                  "publish_tf"
+#define PAR_ENABLE_RGB              "enable_rgb"
+#define PAR_ENABLE_PTCLOUD          "enable_ptcloud"
+#define PAR_ENABLE_REGISTERED       "enable_rgb_ptcloud"
+#define PAR_ENABLE_NORM_DEPTH       "enable_norm_depth"
+#define PAR_ENABLE_NORM_DISP        "enable_norm_disparity"
+#define PAR_ENABLE_NORM_CONF        "enable_norm_confidence"
+#define PAR_CONF_THRESH             "confidence_thresh"
 
 void ZedDriver::loadParams()
 {
-    if( _nh.hasParam( PAR_RESOL ) )
+    string prefix = ros::this_node::getName();
+
+    ROS_INFO_STREAM( "Node: " << prefix );
+
+    if( _nh.hasParam( prefix+"/"+PAR_RESOL ) )
     {
         string resolStr;
-        _nh.getParam( PAR_RESOL, resolStr );
+        _nh.getParam( prefix+"/"+PAR_RESOL, resolStr );
+
 
         if( resolStr.compare( "VGA")==0 )
         {
@@ -460,79 +465,81 @@ void ZedDriver::loadParams()
     else
     {
         _resol = zed::VGA;
-        _nh.setParam( PAR_PUB_TF, "VGA" );
+        _nh.setParam( prefix+"/"+PAR_PUB_TF, "VGA" );
     }
 
-    if( _nh.hasParam( PAR_ENABLE_RGB ) )
+    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_RGB ) )
     {
-        _nh.getParam( PAR_ENABLE_RGB, _enable_rgb );
+        _nh.getParam( prefix+"/"+PAR_ENABLE_RGB, _enable_rgb );
     }
     else
     {
         _enable_rgb = true;
-        _nh.setParam( PAR_ENABLE_RGB, _enable_rgb );
+        _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_rgb );
     }
 
-    if( _nh.hasParam( PAR_ENABLE_PTCLOUD ) )
+    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_PTCLOUD ) )
     {
-        _nh.getParam( PAR_ENABLE_PTCLOUD, _enable_ptcloud );
+        _nh.getParam( prefix+"/"+PAR_ENABLE_PTCLOUD, _enable_ptcloud );
     }
     else
     {
         _enable_ptcloud = true;
-        _nh.setParam( PAR_ENABLE_RGB, _enable_ptcloud );
+        _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_ptcloud );
     }
 
-    if( _nh.hasParam( PAR_ENABLE_REGISTERED ) )
+    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_REGISTERED ) )
     {
-        _nh.getParam( PAR_ENABLE_REGISTERED, _enable_registered );
+        _nh.getParam( prefix+"/"+PAR_ENABLE_REGISTERED, _enable_registered );
     }
     else
     {
         _enable_registered = true;
-        _nh.setParam( PAR_ENABLE_REGISTERED, _enable_registered );
+        _nh.setParam( prefix+"/"+PAR_ENABLE_REGISTERED, _enable_registered );
     }
 
-    if( _nh.hasParam( PAR_ENABLE_NORM_DEPTH ) )
+    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH ) )
     {
-        _nh.getParam( PAR_ENABLE_NORM_DEPTH, _enable_norm_depth );
+        _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH, _enable_norm_depth );
     }
     else
     {
         _enable_norm_depth = true;
-        _nh.setParam( PAR_ENABLE_NORM_DEPTH, _enable_norm_depth );
+        _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH, _enable_norm_depth );
     }
 
-    if( _nh.hasParam( PAR_ENABLE_NORM_DISP ) )
+    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_DISP ) )
     {
-        _nh.getParam( PAR_ENABLE_NORM_DISP, _enable_norm_disp );
+        _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_norm_disp );
     }
     else
     {
         _enable_norm_disp = true;
-        _nh.setParam( PAR_ENABLE_NORM_DISP, _enable_norm_disp );
+        _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_norm_disp );
     }
 
-    if( _nh.hasParam( PAR_ENABLE_NORM_CONF ) )
+    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_CONF ) )
     {
-        _nh.getParam( PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
+        _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
     }
     else
     {
         _enable_norm_confidence = true;
-        _nh.setParam( PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
+        _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
     }
 
     // TODO enable confidence
-    if( _nh.hasParam( PAR_CONF_THRESH ) )
+    if( _nh.hasParam( prefix+"/"+PAR_CONF_THRESH ) )
     {
-        _nh.getParam( PAR_CONF_THRESH, _conf_thresh );
+        _nh.getParam( prefix+"/"+PAR_CONF_THRESH, _conf_thresh );
     }
     else
     {
         _conf_thresh = 60;
-        _nh.setParam( PAR_CONF_THRESH, _conf_thresh );
+        _nh.setParam( prefix+"/"+PAR_CONF_THRESH, _conf_thresh );
     }
+
+    ROS_INFO_STREAM( _conf_thresh );
 }
 
 void  ZedDriver::start(void)

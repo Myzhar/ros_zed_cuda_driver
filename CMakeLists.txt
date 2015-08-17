@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.7)
 
-project(ros_zed_camera)
+project(ros_zed_cuda_driver)
 
 ###############################################################################
 ## Note by Myzhar                                                            ##
