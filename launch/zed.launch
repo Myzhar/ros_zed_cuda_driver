@@ -1,0 +1,34 @@
+<launch>
+  <arg name="camera" default="zed" />
+  <node pkg="ros_zed_cuda_driver" type="depthsense_camera_node" name="depthsense_camera_node" ns="$(arg camera)" output="screen">
+	
+	<!-- Possible values: VGA HD2K HD1080 HD720 -->
+	<param name="resolution" value="VGA"/> 
+	
+	<!-- Enable TF publishing. Disable if using a robot model -->
+	<param name="publish_tf" value="false"/>
+	
+	<!-- Enable left and right RGB image publishing. Image are rectified -->
+	<param name="enable_rgb" value="true"/> 
+	
+	<!-- Enable monochrome pointcloud publishing  -->
+	<param name="enable_ptcloud" value="true"/> 
+	
+	<!-- Enable rgb pointcloud publishing. Only available if "enable_rgb" is true  -->
+	<param name="enable_rgb_ptcloud" value="true"/> 
+	
+	<!-- Enable depth image publishing. Image is normalized for visualization purpose -->	
+	<param name="enable_norm_depth" value="true"/> 
+	
+	<!-- Enable disparity image publishing. Image is normalized for visualization purpose -->
+	<param name="enable_norm_disparity" value="true"/> 
+	
+	<!-- Enable confidence image publishing. Image is normalized for visualization purpose -->
+	<param name="enable_norm_confidence" value="true"/> 
+
+	<!-- Filtering value for the disparity map (and by extension the depth map). value in [1,100]. 
+             A lower value means more confidence and precision (but less density), an upper value reduces 
+             the filtering (more density, less certainty). Other value means no filtering. -->	
+	<param name="confidence_thresh" value="80"/> 
+  </node>
+</launch>

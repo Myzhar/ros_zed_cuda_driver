@@ -74,6 +74,7 @@ private:
 
     sensor_msgs::CameraInfo _left_cam_info_msg;
     sensor_msgs::CameraInfo _right_cam_info_msg;
+    sensor_msgs::CameraInfo _depth_cam_info_msg;
 
     // >>>>> Image transportation RGB
     image_transport::ImageTransport _rgb_left_ImgTr;
@@ -84,8 +85,10 @@ private:
 
     // >>>>> Image transportation Depth/Confidence
     ros::Publisher _disparity_pub;
+    image_transport::ImageTransport _depth_ImgTr;
     image_transport::ImageTransport _confidence_ImgTr;
-    image_transport::CameraPublisher _confidence_pub;
+    image_transport::CameraPublisher _norm_depth_pub;
+    image_transport::CameraPublisher _norm_confidence_pub;
     // <<<<< Image transportation Depth/Confidence
 
     bool _initialized;
@@ -98,7 +101,10 @@ private:
     zed::ZEDResolution_mode _resol; ///< Camera resolution
     bool _publish_tf;                   ///< Publish TF if true
     bool _enable_rgb;                   ///< Publish RGB stream if true
-    bool _enable_depth_confidence;      ///< Publish Depth and Confidence stream if true
+    //bool _enable_depth_confidence;      ///< Publish Depth and Confidence stream if true
+    bool _enable_norm_depth;            ///< Publish normalized Depth Map
+    bool _enable_norm_confidence;       ///< Publish normalized Confidence Map
+    bool _enable_norm_disp;            ///< Publish normalized Disparity Map
     int  _conf_thresh;                  ///< Confidence threshold [DYN]
     bool _enable_ptcloud;               ///< Publish 3d pointcloud if true.
     bool _enable_registered;            ///< Publish 3d registered pointcloud if true and @ref _enable_rgb is true and @ref _enable_ptcloud is true
