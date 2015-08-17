@@ -274,8 +274,8 @@ void* ZedDriver::run()
         // >>>>> Disparity Map
         if(_enable_disp)
         {
-            //tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DISPARITY);
             tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DISPARITY);
+            //tmpMat = _zed_camera->retrieveMeasure(zed::MEASURE::DISPARITY);
             //            if( disparity.height != tmpMat.height || disparity.width!=tmpMat.width )
             //                disparity.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( disparity.data, tmpMat.data, tmpMat.getDataSize() );
@@ -313,8 +313,8 @@ void* ZedDriver::run()
             int imgSize = dispMsg.image.height * dispMsg.image.step;
             dispMsg.image.data.resize( imgSize );
 
-            //cudaMemcpy((float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost);
-            memcpy( (float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize );
+            cudaMemcpy((float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost);
+            //memcpy( (float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize );
 
             if(_disparity_pub.getNumSubscribers()>0)
                 _disparity_pub.publish( dispMsg );

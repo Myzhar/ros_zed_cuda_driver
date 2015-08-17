@@ -31,7 +31,7 @@ endif()
 ###############################################################################
 # INCLUDES
 
-set(zed_INC_PATH ${ros_zed_camera_SOURCE_DIR}/src/driver/include)
+set(zed_INC_PATH ${ros_zed_cuda_driver_SOURCE_DIR}/src/driver/include)
 set(zed_INC_DIRS ${zed_INC_PATH})
 
 # Specify locations of header files.
@@ -95,8 +95,8 @@ include_directories(${catkin_INCLUDE_DIRS})
 ###############################################################################
 # SOURCES
 set(zed_SRC
-    ${ros_zed_camera_SOURCE_DIR}/src/zed_camera_node.cpp
-    ${ros_zed_camera_SOURCE_DIR}/src/driver/src/zed_camera_driver.cpp
+    ${ros_zed_cuda_driver_SOURCE_DIR}/src/zed_camera_node.cpp
+    ${ros_zed_cuda_driver_SOURCE_DIR}/src/driver/src/zed_camera_driver.cpp
 )
 
 set(zed_HDR
