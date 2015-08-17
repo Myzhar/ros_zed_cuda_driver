@@ -104,7 +104,7 @@ private:
     //bool _enable_depth_confidence;      ///< Publish Depth and Confidence stream if true
     bool _enable_norm_depth;            ///< Publish normalized Depth Map
     bool _enable_norm_confidence;       ///< Publish normalized Confidence Map
-    bool _enable_norm_disp;            ///< Publish normalized Disparity Map
+    bool _enable_disp;                  ///< Publish Disparity Map
     int  _conf_thresh;                  ///< Confidence threshold [DYN]
     bool _enable_ptcloud;               ///< Publish 3d pointcloud if true.
     bool _enable_registered;            ///< Publish 3d registered pointcloud if true and @ref _enable_rgb is true and @ref _enable_ptcloud is true

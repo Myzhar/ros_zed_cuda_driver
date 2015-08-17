@@ -5,11 +5,11 @@
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "zed_camera");
+    ros::init(argc, argv, "zed_camera_node");
 
-    ROS_INFO_STREAM("-----------------------------------\r");
-    ROS_INFO_STREAM("       StereoLabs ZED node         \r");
-    ROS_INFO_STREAM("-----------------------------------\r");
+    ROS_INFO_STREAM("-----------------------------------");
+    ROS_INFO_STREAM("       StereoLabs ZED node         ");
+    ROS_INFO_STREAM("-----------------------------------");
 
     ZedDriver cameraDriver;
 

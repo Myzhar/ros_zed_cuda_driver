@@ -39,7 +39,7 @@ ZedDriver::ZedDriver()
     if( _enable_norm_depth )
         _norm_depth_pub = _depth_ImgTr.advertiseCamera("stereo/depth_norm", 1,false);
 
-    if( _enable_norm_disp )
+    if( _enable_disp )
         _disparity_pub = _nh.advertise<stereo_msgs::DisparityImage>("stereo/disparity", 1 );
 
     if( _enable_norm_confidence )
@@ -63,9 +63,9 @@ bool ZedDriver::init()
     // TODO set FPS from params!
     _zed_camera = new zed::Camera( _resol, 15.0f );
 
-    zed::MODE mode = (_enable_norm_confidence||_enable_norm_depth||_enable_norm_disp||_enable_ptcloud||_enable_registered)?(zed::PERFORMANCE):(zed::NONE);
+    zed::MODE mode = (_enable_norm_confidence||_enable_norm_depth||_enable_disp||_enable_ptcloud||_enable_registered)?(zed::PERFORMANCE):(zed::NONE);
 
-    zed::ERRCODE err = _zed_camera->init( mode, 0, true );
+    zed::ERRCODE err = _zed_camera->init( mode, 0, false );
 
 
     if( err != zed::SUCCESS )
@@ -219,7 +219,9 @@ void* ZedDriver::run()
 
         ros::spinOnce(); // Processing ROS messages
 
-        bool enableMeasure = _enable_norm_confidence||_enable_norm_depth||_enable_norm_disp||_enable_ptcloud||_enable_registered;
+        bool enableMeasure = _enable_norm_confidence||_enable_norm_depth||_enable_disp||_enable_ptcloud||_enable_registered;
+
+        _zed_camera->setConfidenceThreshold( _conf_thresh );
 
         // ZED Grabbing
         if( !_zed_camera->grab(dm_type, enableMeasure, enableMeasure) )
@@ -231,8 +233,8 @@ void* ZedDriver::run()
         // >>>>> Depth Map normalized
         if( _enable_norm_depth )
         {
-
-            tmpMat = _zed_camera->normalizeMeasure_gpu(zed::MEASURE::DEPTH);
+            //tmpMat = _zed_camera->normalizeMeasure_gpu(zed::MEASURE::DEPTH);
+            tmpMat = _zed_camera->normalizeMeasure(zed::MEASURE::DEPTH);
 
             depthMsgHeader.stamp = now;
             depthMsgHeader.seq = frameCnt;
@@ -244,21 +246,22 @@ void* ZedDriver::run()
             int pixSize;
             if(tmpMat.data_type == zed::DATA_TYPE::FLOAT)
             {
-                dispMsg.image.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+                depthImgMsg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
                 pixSize = sizeof(float);
             }
             else if(tmpMat.data_type == zed::DATA_TYPE::UCHAR)
             {
-                dispMsg.image.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+                depthImgMsg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
                 pixSize = sizeof(uint8_t);
             }
 
-            dispMsg.image.step = tmpMat.width * pixSize * tmpMat.channels;
+            depthImgMsg.step = tmpMat.width * pixSize * tmpMat.channels;
 
             int imgSize = depthImgMsg.height * depthImgMsg.step;
             depthImgMsg.data.resize( imgSize );
 
-            cudaMemcpy( (uint8_t*)(&depthImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost );
+            //cudaMemcpy( (uint8_t*)(&depthImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost );
+            memcpy( (uint8_t*)(&depthImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
 
             _depth_cam_info_msg.header = depthMsgHeader;
 
@@ -268,9 +271,10 @@ void* ZedDriver::run()
         }
         // <<<<< Depth Map normalized
 
-        // >>>>> Disparity Map normalized
-        if(_enable_norm_disp)
+        // >>>>> Disparity Map
+        if(_enable_disp)
         {
+            //tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DISPARITY);
             tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DISPARITY);
             //            if( disparity.height != tmpMat.height || disparity.width!=tmpMat.width )
             //                disparity.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
@@ -285,8 +289,8 @@ void* ZedDriver::run()
             dispMsg.valid_window.y_offset = 0;
             dispMsg.valid_window.width = tmpMat.width;
             dispMsg.valid_window.height = tmpMat.height;
-            dispMsg.min_disparity = -100.0f;
-            dispMsg.max_disparity = 50000.0f;
+            dispMsg.min_disparity = -tmpMat.width/8;    // According to StereoLabs information
+            dispMsg.max_disparity = 0.0f;               // According to StereoLabs information
 
             dispMsg.image.header = dispMsg.header;
             dispMsg.image.width = tmpMat.width;
@@ -309,7 +313,8 @@ void* ZedDriver::run()
             int imgSize = dispMsg.image.height * dispMsg.image.step;
             dispMsg.image.data.resize( imgSize );
 
-            cudaMemcpy((float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost);
+            //cudaMemcpy((float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost);
+            memcpy( (float*)(&dispMsg.image.data[0]), (float*)(&tmpMat.data[0]), imgSize );
 
             if(_disparity_pub.getNumSubscribers()>0)
                 _disparity_pub.publish( dispMsg );
@@ -439,22 +444,25 @@ void ZedDriver::loadParams()
         string resolStr;
         _nh.getParam( prefix+"/"+PAR_RESOL, resolStr );
 
-
         if( resolStr.compare( "VGA")==0 )
         {
             _resol = zed::VGA;
+            ROS_INFO_STREAM( "Resolution: " << "VGA" );
         }
         else if( resolStr.compare( "HD2K")==0 )
         {
             _resol = zed::HD2K;
+            ROS_INFO_STREAM( "Resolution: " << "HD2K" );
         }
         else if( resolStr.compare( "HD1080")==0 )
         {
             _resol = zed::HD1080;
+            ROS_INFO_STREAM( "Resolution: " << "HD1080" );
         }
         else if( resolStr.compare( "HD720")==0 )
         {
             _resol = zed::HD720;
+            ROS_INFO_STREAM( "Resolution: " << "HD720" );
         }
         else
         {
@@ -466,7 +474,11 @@ void ZedDriver::loadParams()
     {
         _resol = zed::VGA;
         _nh.setParam( prefix+"/"+PAR_PUB_TF, "VGA" );
+
+        ROS_INFO_STREAM( "Resolution: " << "VGA" );
     }
+
+
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_RGB ) )
     {
@@ -478,6 +490,8 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_rgb );
     }
 
+    ROS_INFO_STREAM( "RGB: " << _enable_rgb );
+
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_PTCLOUD ) )
     {
         _nh.getParam( prefix+"/"+PAR_ENABLE_PTCLOUD, _enable_ptcloud );
@@ -487,6 +501,8 @@ void ZedDriver::loadParams()
         _enable_ptcloud = true;
         _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_ptcloud );
     }
+
+    ROS_INFO_STREAM( "Pointcloud: " << _enable_ptcloud );
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_REGISTERED ) )
     {
@@ -498,6 +514,8 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_REGISTERED, _enable_registered );
     }
 
+    ROS_INFO_STREAM( "Registered Pointcloud: " << _enable_registered );
+
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH ) )
     {
         _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH, _enable_norm_depth );
@@ -508,15 +526,20 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH, _enable_norm_depth );
     }
 
+    ROS_INFO_STREAM( "Normalized Depth Map: " << _enable_norm_depth );
+
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_DISP ) )
     {
-        _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_norm_disp );
+        _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_disp );
     }
     else
     {
-        _enable_norm_disp = true;
-        _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_norm_disp );
+        _enable_disp = true;
+        _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_disp );
     }
+
+    ROS_INFO_STREAM( "Normalized Disparity Map: " << _enable_disp );
+
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_CONF ) )
     {
@@ -528,7 +551,8 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
     }
 
-    // TODO enable confidence
+    ROS_INFO_STREAM( "Normalized Confidence Map: " << _enable_norm_confidence );
+
     if( _nh.hasParam( prefix+"/"+PAR_CONF_THRESH ) )
     {
         _nh.getParam( prefix+"/"+PAR_CONF_THRESH, _conf_thresh );
@@ -539,7 +563,8 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_CONF_THRESH, _conf_thresh );
     }
 
-    ROS_INFO_STREAM( _conf_thresh );
+    ROS_INFO_STREAM( "Disparity Confidence Threshold: " << _conf_thresh );
+
 }
 
 void  ZedDriver::start(void)

@@ -111,6 +111,7 @@ add_executable(
   ${zed_SRC}
   ${zed_HDR}
 )
+
 add_definitions(-std=c++0x)# -m64)
 
 target_link_libraries(
@@ -122,5 +123,10 @@ target_link_libraries(
         #${GLUT_LIBRARY}
         ${catkin_LIBRARIES}
     )
+
+if(NOT DEBUG_ACTIVE)
+    MESSAGE("Release optimizations active")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3" ) # Release Perf mode
+endif()
 ###############################################################################
 
