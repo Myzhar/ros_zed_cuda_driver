@@ -98,7 +98,8 @@ private:
     static bool _stopping;
 
     // >>>>> node params
-    zed::ZEDResolution_mode _resol; ///< Camera resolution
+    zed::ZEDResolution_mode _resol;     ///< Camera resolution
+    double _fps;                        ///< Acquisition FPS
     bool _publish_tf;                   ///< Publish TF if true
     bool _enable_rgb;                   ///< Publish RGB stream if true
     //bool _enable_depth_confidence;      ///< Publish Depth and Confidence stream if true

@@ -4,7 +4,10 @@
 	
 	<!-- Possible values: VGA HD2K HD1080 HD720 -->
 	<param name="resolution" value="VGA"/> 
-	
+
+	<!-- A requested fps for this resolution. Set as 0.0 will choose the default fps for this resolution ( see User guide) -->
+	<param name="fps" value="15.0"/>
+
 	<!-- Enable TF publishing. Disable if using a robot model -->
 	<param name="publish_tf" value="false"/>
 	

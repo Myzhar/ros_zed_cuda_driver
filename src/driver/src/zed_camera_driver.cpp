@@ -61,7 +61,7 @@ bool ZedDriver::init()
     releaseCamera();
 
     // TODO set FPS from params!
-    _zed_camera = new zed::Camera( _resol, 15.0f );
+    _zed_camera = new zed::Camera( _resol, _fps );
 
     zed::MODE mode = (_enable_norm_confidence||_enable_norm_depth||_enable_disp||_enable_ptcloud||_enable_registered)?(zed::PERFORMANCE):(zed::NONE);
 
@@ -349,9 +349,6 @@ void* ZedDriver::run()
         {
             ros::Time rgbStart = ros::Time::now();
 
-            // TODO verify the buffer overwriting as reported on DOCS
-            // file:///usr/local/zed/doc/API/classsl_1_1zed_1_1Camera.html#a7ae4783e231502e7681890636e24e49c
-
             // >>>>> Left Image
             //tmpMat = _zed_camera->retrieveImage_gpu(zed::SIDE::LEFT);
             tmpMat = _zed_camera->retrieveImage(zed::SIDE::LEFT);
@@ -445,6 +442,7 @@ void* ZedDriver::run()
 }
 
 #define PAR_RESOL                   "resolution"
+#define PAR_FPS                     "fps"
 #define PAR_PUB_TF                  "publish_tf"
 #define PAR_ENABLE_RGB              "enable_rgb"
 #define PAR_ENABLE_PTCLOUD          "enable_ptcloud"
@@ -499,7 +497,17 @@ void ZedDriver::loadParams()
         ROS_INFO_STREAM( "Resolution: " << "VGA" );
     }
 
+    if( _nh.hasParam( prefix+"/"+PAR_FPS ) )
+    {
+        _nh.getParam( prefix+"/"+PAR_FPS, _fps );
+    }
+    else
+    {
+        _fps = 15.0f;
+        _nh.setParam( prefix+"/"+PAR_FPS, _fps );
+    }
 
+    ROS_INFO_STREAM( "FPS: " << _fps );
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_RGB ) )
     {
@@ -511,7 +519,7 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_rgb );
     }
 
-    ROS_INFO_STREAM( "RGB: " << _enable_rgb );
+    ROS_INFO_STREAM( "RGB: " << (_enable_rgb?"Enabled":"Disabled") );
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_PTCLOUD ) )
     {
@@ -523,7 +531,7 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_ptcloud );
     }
 
-    ROS_INFO_STREAM( "Pointcloud: " << _enable_ptcloud );
+    ROS_INFO_STREAM( "Pointcloud: " << (_enable_ptcloud?"Enabled":"Disabled") );
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_REGISTERED ) )
     {
@@ -535,7 +543,7 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_REGISTERED, _enable_registered );
     }
 
-    ROS_INFO_STREAM( "Registered Pointcloud: " << _enable_registered );
+    ROS_INFO_STREAM( "Registered Pointcloud: " << (_enable_registered?"Enabled":"Disabled") );
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH ) )
     {
@@ -547,7 +555,7 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DEPTH, _enable_norm_depth );
     }
 
-    ROS_INFO_STREAM( "Normalized Depth Map: " << _enable_norm_depth );
+    ROS_INFO_STREAM( "Normalized Depth Map: " << (_enable_norm_depth?"Enabled":"Disabled") );
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_DISP ) )
     {
@@ -559,7 +567,7 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_disp );
     }
 
-    ROS_INFO_STREAM( "Normalized Disparity Map: " << _enable_disp );
+    ROS_INFO_STREAM( "Normalized Disparity Map: " << (_enable_disp?"Enabled":"Disabled") );
 
 
     if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_CONF ) )
@@ -572,7 +580,7 @@ void ZedDriver::loadParams()
         _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
     }
 
-    ROS_INFO_STREAM( "Normalized Confidence Map: " << _enable_norm_confidence );
+    ROS_INFO_STREAM( "Normalized Confidence Map: " << (_enable_norm_confidence?"Enabled":"Disabled") );
 
     if( _nh.hasParam( prefix+"/"+PAR_CONF_THRESH ) )
     {
