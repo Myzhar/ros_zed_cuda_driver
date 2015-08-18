@@ -61,7 +61,7 @@ bool ZedDriver::init()
     releaseCamera();
 
     // TODO set FPS from params!
-    _zed_camera = new zed::Camera( _resol, (float)_fps );
+    _zed_camera = new zed::Camera( _resol, 15.0f );
 
     zed::MODE mode = (_enable_norm_confidence||_enable_depth||_enable_disp||_enable_ptcloud||_enable_registered)?(zed::PERFORMANCE):(zed::NONE);
 
@@ -267,9 +267,9 @@ void* ZedDriver::run()
             int imgSize = depthImgMsg.height * depthImgMsg.step;
             depthImgMsg.data.resize( imgSize );
 
-            //cudaMemcpy( (uint8_t*)(&depthImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost );
+            //cudaMemcpy( (float*)(&depthImgMsg.data[0]), (float*)(&tmpMat.data[0]), imgSize, cudaMemcpyDeviceToHost );
             //cudaDeviceSynchronize();
-            memcpy( (uint8_t*)(&depthImgMsg.data[0]), (uint8_t*)(&tmpMat.data[0]), imgSize );
+            memcpy( (float*)(&depthImgMsg.data[0]), (float*)(&tmpMat.data[0]), imgSize );
 
             _depth_cam_info_msg.header = depthMsgHeader;
 
@@ -449,7 +449,7 @@ void* ZedDriver::run()
 #define PAR_ENABLE_RGB              "enable_rgb"
 #define PAR_ENABLE_PTCLOUD          "enable_ptcloud"
 #define PAR_ENABLE_REGISTERED       "enable_rgb_ptcloud"
-#define PAR_enable_depth       "enable_norm_depth"
+#define PAR_enable_depth            "enable_depth"
 #define PAR_ENABLE_NORM_DISP        "enable_norm_disparity"
 #define PAR_ENABLE_NORM_CONF        "enable_norm_confidence"
 #define PAR_CONF_THRESH             "confidence_thresh"

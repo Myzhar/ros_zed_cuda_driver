@@ -20,8 +20,8 @@
 	<!-- Enable rgb pointcloud publishing. Only available if "enable_rgb" is true  -->
 	<param name="enable_rgb_ptcloud" value="false"/> 
 	
-	<!-- Enable depth image publishing. Image is normalized for visualization purpose -->	
-	<param name="enable_norm_depth" value="true"/> 
+	<!-- Enable depth image publishing. Depth image values are in floating point -->	
+	<param name="enable_depth" value="true"/> 
 	
 	<!-- Enable disparity image publishing. Image is normalized for visualization purpose -->
 	<param name="enable_norm_disparity" value="false"/> 
@@ -32,6 +32,6 @@
 	<!-- Filtering value for the disparity map (and by extension the depth map). value in [1,100]. 
              A lower value means more confidence and precision (but less density), an upper value reduces 
              the filtering (more density, less certainty). Other value means no filtering. -->	
-	<param name="confidence_thresh" value="80"/> 
+	<param name="confidence_thresh" value="60"/> 
   </node>
 </launch>
