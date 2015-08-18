@@ -87,7 +87,7 @@ private:
     ros::Publisher _disparity_pub;
     image_transport::ImageTransport _depth_ImgTr;
     image_transport::ImageTransport _confidence_ImgTr;
-    image_transport::CameraPublisher _norm_depth_pub;
+    image_transport::CameraPublisher _depth_pub;
     image_transport::CameraPublisher _norm_confidence_pub;
     // <<<<< Image transportation Depth/Confidence
 
@@ -103,7 +103,7 @@ private:
     bool _publish_tf;                   ///< Publish TF if true
     bool _enable_rgb;                   ///< Publish RGB stream if true
     //bool _enable_depth_confidence;      ///< Publish Depth and Confidence stream if true
-    bool _enable_norm_depth;            ///< Publish normalized Depth Map
+    bool _enable_depth;                 ///< Publish raw floating point Depth Map
     bool _enable_norm_confidence;       ///< Publish normalized Confidence Map
     bool _enable_disp;                  ///< Publish Disparity Map
     int  _conf_thresh;                  ///< Confidence threshold [DYN]

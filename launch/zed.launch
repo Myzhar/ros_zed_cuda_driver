@@ -15,10 +15,10 @@
 	<param name="enable_rgb" value="true"/> 
 	
 	<!-- Enable monochrome pointcloud publishing  -->
-	<param name="enable_ptcloud" value="true"/> 
+	<param name="enable_ptcloud" value="false"/> 
 	
 	<!-- Enable rgb pointcloud publishing. Only available if "enable_rgb" is true  -->
-	<param name="enable_rgb_ptcloud" value="true"/> 
+	<param name="enable_rgb_ptcloud" value="false"/> 
 	
 	<!-- Enable depth image publishing. Image is normalized for visualization purpose -->	
 	<param name="enable_norm_depth" value="true"/> 
@@ -27,7 +27,7 @@
 	<param name="enable_norm_disparity" value="false"/> 
 	
 	<!-- Enable confidence image publishing. Image is normalized for visualization purpose -->
-	<param name="enable_norm_confidence" value="true"/> 
+	<param name="enable_norm_confidence" value="false"/> 
 
 	<!-- Filtering value for the disparity map (and by extension the depth map). value in [1,100]. 
              A lower value means more confidence and precision (but less density), an upper value reduces 

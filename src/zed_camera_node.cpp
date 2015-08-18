@@ -20,6 +20,13 @@ int main(int argc, char** argv)
     else
         return(EXIT_FAILURE);
 
+    while( ros::ok() )
+    {
+        ros::Duration(1).sleep();
+
+        ros::spinOnce();
+    }
+
     ROS_INFO_STREAM( "... shutting down complete." );
 
     return(EXIT_SUCCESS);
