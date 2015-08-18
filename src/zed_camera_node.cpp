@@ -13,12 +13,12 @@ int main(int argc, char** argv)
 
     ZedDriver cameraDriver;
 
-    if(cameraDriver.init() )
+    bool ready = cameraDriver.init();
+
+    if( ready )
         cameraDriver.start();
     else
         return(EXIT_FAILURE);
-
-    ros::spin();
 
     ROS_INFO_STREAM( "... shutting down complete." );
 

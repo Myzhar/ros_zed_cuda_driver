@@ -57,7 +57,7 @@ ZedDriver::~ZedDriver()
 }
 
 bool ZedDriver::init()
-{
+{    
     releaseCamera();
 
     // TODO set FPS from params!
@@ -204,7 +204,7 @@ void* ZedDriver::run()
 
     stereo_msgs::DisparityImage dispMsg;
 
-    while( 1 )
+    while( ros::ok() )
     {
         if( _stopping )
         {
@@ -215,9 +215,10 @@ void* ZedDriver::run()
         {
             ROS_ERROR_STREAM( "The camera is not initialized or has been stopped. Closing");
             break;
-        }
+        }        
 
-        ros::spinOnce(); // Processing ROS messages
+        // >>>>> Acquiring
+        ros::Time acqStart = ros::Time::now();
 
         bool enableMeasure = _enable_norm_confidence||_enable_norm_depth||_enable_disp||_enable_ptcloud||_enable_registered;
 
@@ -227,16 +228,22 @@ void* ZedDriver::run()
         if( !_zed_camera->grab(dm_type, enableMeasure, enableMeasure) )
             continue;
 
-        ros::Time now = ros::Time::now();
+        ROS_INFO_STREAM( "Grabbing: " << (ros::Time::now() - acqStart)*1000.0 << " msec" );
+
+        // <<<<< Acquiring
+
+        ros::Time msg_timeStamp = ros::Time::now();
         frameCnt++;
 
         // >>>>> Depth Map normalized
         if( _enable_norm_depth )
         {
+            ros::Time depthStart = ros::Time::now();
+
             //tmpMat = _zed_camera->normalizeMeasure_gpu(zed::MEASURE::DEPTH);
             tmpMat = _zed_camera->normalizeMeasure(zed::MEASURE::DEPTH);
 
-            depthMsgHeader.stamp = now;
+            depthMsgHeader.stamp = msg_timeStamp;
             depthMsgHeader.seq = frameCnt;
             depthMsgHeader.frame_id = "depth";
 
@@ -268,19 +275,22 @@ void* ZedDriver::run()
             if(_norm_depth_pub.getNumSubscribers()>0)
                 _norm_depth_pub.publish( depthImgMsg, _depth_cam_info_msg );
 
+            ROS_INFO_STREAM( "Depth: " << (ros::Time::now() - depthStart)*1000.0 << " msec" );
         }
         // <<<<< Depth Map normalized
 
         // >>>>> Disparity Map
         if(_enable_disp)
         {
+            ros::Time dispStart = ros::Time::now();
+
             //tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DISPARITY);
             tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::DISPARITY);
             //            if( disparity.height != tmpMat.height || disparity.width!=tmpMat.width )
             //                disparity.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( disparity.data, tmpMat.data, tmpMat.getDataSize() );
 
-            dispMsg.header.stamp = now;
+            dispMsg.header.stamp = msg_timeStamp;
             dispMsg.header.seq = frameCnt;
             dispMsg.header.frame_id = "disp";
 
@@ -318,19 +328,27 @@ void* ZedDriver::run()
 
             if(_disparity_pub.getNumSubscribers()>0)
                 _disparity_pub.publish( dispMsg );
+
+            ROS_INFO_STREAM( "Disparity: " << (ros::Time::now() - dispStart)*1000.0 << " msec" );
         }
         // <<<<< Disparity Map normalized
 
         if( _enable_norm_confidence )
         {
+            ros::Time confStart = ros::Time::now();
+
             //tmpMat = _zed_camera->retrieveMeasure_gpu(zed::MEASURE::CONFIDENCE);
             //            if( confidence.height != tmpMat.height || confidence.width!=tmpMat.width )
             //                confidence.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( confidence.data, tmpMat.data, tmpMat.getDataSize() );
+
+            ROS_INFO_STREAM( "Confidence: " << (ros::Time::now() - confStart)*1000.0 << " msec" );
         }
 
         if( _enable_rgb )
         {
+            ros::Time rgbStart = ros::Time::now();
+
             // TODO verify the buffer overwriting as reported on DOCS
             // file:///usr/local/zed/doc/API/classsl_1_1zed_1_1Camera.html#a7ae4783e231502e7681890636e24e49c
 
@@ -341,7 +359,7 @@ void* ZedDriver::run()
             //                imLeft.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( imLeft.data, tmpMat.data, tmpMat.getDataSize() );
 
-            leftMsgHeader.stamp = now;
+            leftMsgHeader.stamp = msg_timeStamp;
             leftMsgHeader.seq = frameCnt;
             leftMsgHeader.frame_id = "left";
 
@@ -370,7 +388,7 @@ void* ZedDriver::run()
             //                imRight.allocate_cpu( tmpMat.width, tmpMat.height, tmpMat.channels, tmpMat.data_type );
             //            memcpy( imRight.data, tmpMat.data, tmpMat.getDataSize() );
 
-            rightMsgHeader.stamp = now;
+            rightMsgHeader.stamp = msg_timeStamp;
             rightMsgHeader.seq = frameCnt;
             rightMsgHeader.frame_id = "right";
 
@@ -399,9 +417,12 @@ void* ZedDriver::run()
             if( _rgb_right_pub.getNumSubscribers()>0 )
                 _rgb_right_pub.publish( rightImgMsg, _right_cam_info_msg );
 
+            ROS_INFO_STREAM( "RGB: " << (ros::Time::now() - rgbStart)*1000.0 << " msec" );
         }
 
         // TODO Create the pointcloud
+
+        ros::spinOnce(); // Processing ROS messages
     }
 
     //depth.deallocate();
