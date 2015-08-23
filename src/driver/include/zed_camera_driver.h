@@ -15,7 +15,6 @@
 #include <std_msgs/Header.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/Imu.h>
 #include <stereo_msgs/DisparityImage.h>
 
 #include <pthread.h>
@@ -69,6 +68,7 @@ private:
 
 private:
     ros::NodeHandle _nh;
+    ros::NodeHandle _nhPriv;
     ros::Publisher _vertex_pub;
     ros::Publisher _vertex_reg_pub;
 

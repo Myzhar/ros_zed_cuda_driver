@@ -11,7 +11,8 @@ bool ZedDriver::_stopping = false;
 using namespace std;
 
 ZedDriver::ZedDriver()
-    : _initialized(false)
+    : _nhPriv("~")
+    , _initialized(false)
     , _streaming(false)
     , _error(false)
     , _rgb_left_ImgTr(_nh)
@@ -60,8 +61,7 @@ bool ZedDriver::init()
 {    
     releaseCamera();
 
-    // TODO set FPS from params!
-    _zed_camera = new zed::Camera( _resol, 15.0f );
+    _zed_camera = new zed::Camera( _resol, (float)_fps );
 
     zed::MODE mode = (_enable_norm_confidence||_enable_depth||_enable_disp||_enable_ptcloud||_enable_registered)?(zed::PERFORMANCE):(zed::NONE);
 
@@ -98,11 +98,11 @@ void ZedDriver::initCamInfo( zed::StereoParameters* params )
     _right_cam_info_msg.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
     _left_cam_info_msg.D.resize(5);
-    _left_cam_info_msg.D[0] = params->LeftCam.disto[0];
-    _left_cam_info_msg.D[1] = params->LeftCam.disto[1];
-    _left_cam_info_msg.D[2] = params->LeftCam.disto[2];
-    _left_cam_info_msg.D[3] = params->LeftCam.disto[3];
-    _left_cam_info_msg.D[4] = params->LeftCam.disto[4];
+    _left_cam_info_msg.D[0] = 0.0; //params->LeftCam.disto[0]; Images are rectified!!!
+    _left_cam_info_msg.D[1] = 0.0; //params->LeftCam.disto[1]; Images are rectified!!!
+    _left_cam_info_msg.D[2] = 0.0; //params->LeftCam.disto[2]; Images are rectified!!!
+    _left_cam_info_msg.D[3] = 0.0; //params->LeftCam.disto[3]; Images are rectified!!!
+    _left_cam_info_msg.D[4] = 0.0; //params->LeftCam.disto[4]; Images are rectified!!!
     _left_cam_info_msg.K.fill( 0.0 );
     _left_cam_info_msg.K[0] = params->LeftCam.fx;
     _left_cam_info_msg.K[2] = params->LeftCam.cx;
@@ -123,11 +123,11 @@ void ZedDriver::initCamInfo( zed::StereoParameters* params )
     _left_cam_info_msg.height = _zed_camera->getImageSize().height;
 
     _right_cam_info_msg.D.resize(5);
-    _right_cam_info_msg.D[0] = params->RightCam.disto[0];
-    _right_cam_info_msg.D[1] = params->RightCam.disto[1];
-    _right_cam_info_msg.D[2] = params->RightCam.disto[2];
-    _right_cam_info_msg.D[3] = params->RightCam.disto[3];
-    _right_cam_info_msg.D[4] = params->RightCam.disto[4];
+    _right_cam_info_msg.D[0] = 0.0; //params->RightCam.disto[0]; Images are rectified!!!
+    _right_cam_info_msg.D[1] = 0.0; //params->RightCam.disto[1]; Images are rectified!!!
+    _right_cam_info_msg.D[2] = 0.0; //params->RightCam.disto[2]; Images are rectified!!!
+    _right_cam_info_msg.D[3] = 0.0; //params->RightCam.disto[3]; Images are rectified!!!
+    _right_cam_info_msg.D[4] = 0.0; //params->RightCam.disto[4]; Images are rectified!!!
     _right_cam_info_msg.K.fill( 0.0 );
     _right_cam_info_msg.K[0] = params->RightCam.fx;
     _right_cam_info_msg.K[2] = params->RightCam.cx;
@@ -149,11 +149,11 @@ void ZedDriver::initCamInfo( zed::StereoParameters* params )
     _right_cam_info_msg.height = _zed_camera->getImageSize().height;
 
     _depth_cam_info_msg.D.resize(5);
-    _depth_cam_info_msg.D[0] = params->LeftCam.disto[0];
-    _depth_cam_info_msg.D[1] = params->LeftCam.disto[1];
-    _depth_cam_info_msg.D[2] = params->LeftCam.disto[2];
-    _depth_cam_info_msg.D[3] = params->LeftCam.disto[3];
-    _depth_cam_info_msg.D[4] = params->LeftCam.disto[4];
+    _depth_cam_info_msg.D[0] = 0.0; //params->LeftCam.disto[0]; Images are rectified!!!
+    _depth_cam_info_msg.D[1] = 0.0; //params->LeftCam.disto[1]; Images are rectified!!!
+    _depth_cam_info_msg.D[2] = 0.0; //params->LeftCam.disto[2]; Images are rectified!!!
+    _depth_cam_info_msg.D[3] = 0.0; //params->LeftCam.disto[3]; Images are rectified!!!
+    _depth_cam_info_msg.D[4] = 0.0; //params->LeftCam.disto[4]; Images are rectified!!!
     _depth_cam_info_msg.K.fill( 0.0 );
     _depth_cam_info_msg.K[0] = params->LeftCam.fx;
     _depth_cam_info_msg.K[2] = params->LeftCam.cx;
@@ -456,14 +456,10 @@ void* ZedDriver::run()
 
 void ZedDriver::loadParams()
 {
-    string prefix = ros::this_node::getName();
-
-    ROS_INFO_STREAM( "Node: " << prefix );
-
-    if( _nh.hasParam( prefix+"/"+PAR_RESOL ) )
+    if( _nhPriv.hasParam( PAR_RESOL ) )
     {
         string resolStr;
-        _nh.getParam( prefix+"/"+PAR_RESOL, resolStr );
+        _nhPriv.getParam( PAR_RESOL, resolStr );
 
         if( resolStr.compare( "VGA")==0 )
         {
@@ -494,104 +490,104 @@ void ZedDriver::loadParams()
     else
     {
         _resol = zed::VGA;
-        _nh.setParam( prefix+"/"+PAR_PUB_TF, "VGA" );
+        _nhPriv.setParam( PAR_PUB_TF, "VGA" );
 
         ROS_INFO_STREAM( "Resolution: " << "VGA" );
     }
 
-    if( _nh.hasParam( prefix+"/"+PAR_FPS ) )
+    if( _nhPriv.hasParam( PAR_FPS ) )
     {
-        _nh.getParam( prefix+"/"+PAR_FPS, _fps );
+        _nhPriv.getParam( PAR_FPS, _fps );
     }
     else
     {
         _fps = 15.0f;
-        _nh.setParam( prefix+"/"+PAR_FPS, _fps );
+        _nhPriv.setParam( PAR_FPS, _fps );
     }
 
     ROS_INFO_STREAM( "FPS: " << _fps );
 
-    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_RGB ) )
+    if( _nhPriv.hasParam( PAR_ENABLE_RGB ) )
     {
-        _nh.getParam( prefix+"/"+PAR_ENABLE_RGB, _enable_rgb );
+        _nhPriv.getParam( PAR_ENABLE_RGB, _enable_rgb );
     }
     else
     {
         _enable_rgb = true;
-        _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_rgb );
+        _nhPriv.setParam( PAR_ENABLE_RGB, _enable_rgb );
     }
 
     ROS_INFO_STREAM( "RGB: " << (_enable_rgb?"Enabled":"Disabled") );
 
-    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_PTCLOUD ) )
+    if( _nhPriv.hasParam( PAR_ENABLE_PTCLOUD ) )
     {
-        _nh.getParam( prefix+"/"+PAR_ENABLE_PTCLOUD, _enable_ptcloud );
+        _nhPriv.getParam( PAR_ENABLE_PTCLOUD, _enable_ptcloud );
     }
     else
     {
         _enable_ptcloud = false;
-        _nh.setParam( prefix+"/"+PAR_ENABLE_RGB, _enable_ptcloud );
+        _nhPriv.setParam( PAR_ENABLE_RGB, _enable_ptcloud );
     }
 
     ROS_INFO_STREAM( "Pointcloud: " << (_enable_ptcloud?"Enabled":"Disabled") );
 
-    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_REGISTERED ) )
+    if( _nhPriv.hasParam( PAR_ENABLE_REGISTERED ) )
     {
-        _nh.getParam( prefix+"/"+PAR_ENABLE_REGISTERED, _enable_registered );
+        _nhPriv.getParam( PAR_ENABLE_REGISTERED, _enable_registered );
     }
     else
     {
         _enable_registered = false;
-        _nh.setParam( prefix+"/"+PAR_ENABLE_REGISTERED, _enable_registered );
+        _nhPriv.setParam( PAR_ENABLE_REGISTERED, _enable_registered );
     }
 
     ROS_INFO_STREAM( "Registered Pointcloud: " << (_enable_registered?"Enabled":"Disabled") );
 
-    if( _nh.hasParam( prefix+"/"+PAR_enable_depth ) )
+    if( _nhPriv.hasParam( PAR_enable_depth ) )
     {
-        _nh.getParam( prefix+"/"+PAR_enable_depth, _enable_depth );
+        _nhPriv.getParam( PAR_enable_depth, _enable_depth );
     }
     else
     {
         _enable_depth = false;
-        _nh.setParam( prefix+"/"+PAR_enable_depth, _enable_depth );
+        _nhPriv.setParam( PAR_enable_depth, _enable_depth );
     }
 
     ROS_INFO_STREAM( "Normalized Depth Map: " << (_enable_depth?"Enabled":"Disabled") );
 
-    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_DISP ) )
+    if( _nhPriv.hasParam( PAR_ENABLE_NORM_DISP ) )
     {
-        _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_disp );
+        _nhPriv.getParam( PAR_ENABLE_NORM_DISP, _enable_disp );
     }
     else
     {
         _enable_disp = false;
-        _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_DISP, _enable_disp );
+        _nhPriv.setParam( PAR_ENABLE_NORM_DISP, _enable_disp );
     }
 
     ROS_INFO_STREAM( "Normalized Disparity Map: " << (_enable_disp?"Enabled":"Disabled") );
 
 
-    if( _nh.hasParam( prefix+"/"+PAR_ENABLE_NORM_CONF ) )
+    if( _nhPriv.hasParam( PAR_ENABLE_NORM_CONF ) )
     {
-        _nh.getParam( prefix+"/"+PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
+        _nhPriv.getParam( PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
     }
     else
     {
         _enable_norm_confidence = false;
-        _nh.setParam( prefix+"/"+PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
+        _nhPriv.setParam( PAR_ENABLE_NORM_CONF, _enable_norm_confidence );
     }
 
     ROS_INFO_STREAM( "Normalized Confidence Map: " << (_enable_norm_confidence?"Enabled":"Disabled") );
 
-    if( _nh.hasParam( prefix+"/"+PAR_CONF_THRESH ) )
+    if( _nhPriv.hasParam( PAR_CONF_THRESH ) )
     {
-        _nh.getParam( prefix+"/"+PAR_CONF_THRESH, _conf_thresh );
+        _nhPriv.getParam( PAR_CONF_THRESH, _conf_thresh );
     }
     else
     {
         _conf_thresh = 60;
-        _nh.setParam( prefix+"/"+PAR_CONF_THRESH, _conf_thresh );
+        _nhPriv.setParam( PAR_CONF_THRESH, _conf_thresh );
     }
 
     ROS_INFO_STREAM( "Disparity Confidence Threshold: " << _conf_thresh );
