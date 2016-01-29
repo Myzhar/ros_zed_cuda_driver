@@ -1,3 +1,5 @@
+[This is a preliminary version of the driver. Please consider to use this one: https://github.com/Myzhar/ros_simple_zed_cuda_driver]
+
 # ros-zed-cuda-driver
 Driver for the ZED Stereo Camera by StereoLabs. The driver is based on ZED SDK, so needs CUDA to run
 
